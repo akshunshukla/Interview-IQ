@@ -1,0 +1,217 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+
+enum Role { 
+  CANDIDATE 
+  RECRUITER 
+}
+
+enum OrgRole { 
+  ADMIN 
+  MEMBER 
+}
+
+enum JobStatus { 
+  OPEN 
+  PAUSED 
+  CLOSED 
+}
+
+enum AppStatus { 
+  APPLIED 
+  REJECTED 
+  INTERVIEWING 
+  SHORTLISTED 
+  HIRED 
+}
+
+enum InterviewType { 
+  JOB 
+  MOCK 
+}
+
+enum RoundType { 
+  SCREENING 
+  TECHNICAL 
+  HR 
+  MOCK 
+}
+
+enum InterviewStatus { 
+  PENDING 
+  IN_PROGRESS 
+  COMPLETED 
+  FAILED 
+}
+
+enum ReportStatus { 
+  PENDING 
+  READY 
+  FAILED 
+}
+
+enum WorkMode { 
+  REMOTE 
+  HYBRID 
+  ONSITE 
+}
+
+enum SpeakerRole { 
+  AI 
+  USER 
+}
+
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships  OrganizationMembership[]
+  applications Application[] @relation("Applicant")
+  reviewsDone  Application[] @relation("Reviewer") 
+  interviews   Interview[]   
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships OrganizationMembership[]
+  jobs        Job[]
+}
+
+model OrganizationMembership {
+  id        String   @id @default(uuid())
+  userId    String
+  orgId     String
+  role      OrgRole  @default(MEMBER)
+  joinedAt  DateTime @default(now())
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, orgId]) 
+}
+
+
+model Job {
+  id                String    @id @default(uuid())
+  orgId             String
+  title             String
+  job_description   String    @db.Text
+  tech_stack        String[]
+  
+  location          String?
+  workMode          WorkMode  @default(REMOTE)
+  experienceLevel   String?   
+  
+  max_applicants    Int
+  eligibility_rules Json?
+  isUnlisted        Boolean   @default(false)
+  accessCode        String?   @unique
+  status            JobStatus @default(OPEN)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  organization Organization  @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  applications Application[]
+}
+
+model Application {
+  id             String    @id @default(uuid())
+  jobId          String
+  applicantId    String
+  status         AppStatus @default(APPLIED)
+  
+  resume_text    String?   @db.Text  
+  resumeFileUrl  String?             
+
+  reviewedById   String?
+  reviewedAt     DateTime?
+  decisionReason String?   @db.Text
+
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  job        Job         @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicant  User        @relation("Applicant", fields: [applicantId], references: [id], onDelete: Cascade)
+  reviewer   User?       @relation("Reviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  
+  interviews Interview[] 
+}
+
+
+model Interview {
+  id            String          @id @default(uuid())
+  userId        String          
+  applicationId String?         
+  
+  interviewType InterviewType
+  roundType     RoundType
+  attemptNumber Int             @default(1)
+  status        InterviewStatus @default(PENDING)
+  maxQuestions  Int             @default(6)
+
+  // Mock interview context (when no application exists)
+  resumeText    String?         @db.Text
+  targetRole    String?
+  
+  startedAt     DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime        @default(now())
+
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  turns       InterviewTurn[]
+  report      Report?
+}
+
+model InterviewTurn {
+  id              String      @id @default(uuid())
+  interviewId     String
+  turn_number     Int
+  speaker         SpeakerRole
+  text            String      @db.Text
+  audioUrl        String?     
+  timeTakenSec    Int?        
+  confidenceScore Float?      
+  createdAt       DateTime    @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+
+model Report {
+  id                  String       @id @default(uuid())
+  interviewId         String       @unique
+  
+  generationStatus    ReportStatus @default(PENDING) 
+  
+  tech_score          Int?
+  comm_score          Int?
+  problemSolvingScore Int?
+  clarityScore        Int?
+  
+  strengths           String[]
+  weaknesses          String[]
+  finalRecommendation String?      @db.Text
+  final_verdict       String?      
+  
+  generatedAt         DateTime?
+  createdAt           DateTime     @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}

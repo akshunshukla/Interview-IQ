@@ -11,12 +11,14 @@ const signToken = (id) => {
   });
 };
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const sendTokenCookie = (res, token) => {
   const cookieOptions = {
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
   };
   res.cookie("jwt", token, cookieOptions);
 };
@@ -131,7 +133,8 @@ export const logout = asyncHandler(async (req, res, next) => {
   res.cookie("jwt", "loggedout", {
     expires: new Date(Date.now() + 5 * 1000),
     httpOnly: true,
-    sameSite: "lax",
+    sameSite: isProduction ? "none" : "lax",
+    secure: isProduction,
   });
 
   res

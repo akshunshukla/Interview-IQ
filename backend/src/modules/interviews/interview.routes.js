@@ -9,6 +9,7 @@ import {
   processSnapshot,
 } from "./interview.controller.js";
 import { protect } from "../../middleware/authMiddleware.js";
+import { interviewLimiter } from "../../middleware/rateLimit.js";
 
 const router = express.Router();
 
@@ -23,8 +24,8 @@ router.use(protect);
 
 router.get("/my", getMyInterviews);
 router.get("/:id", getInterviewDetails);
-router.post("/start", upload.single("resume"), startInterview);
-router.post("/turn", upload.single("audio"), processInterviewTurn);
+router.post("/start", interviewLimiter, upload.single("resume"), startInterview);
+router.post("/turn", interviewLimiter, upload.single("audio"), processInterviewTurn);
 router.post("/snapshot", upload.single("image"), processSnapshot);
 router.post("/:id/finish", endInterview);
 

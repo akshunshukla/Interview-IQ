@@ -1,13 +1,13 @@
-# InterviewIQ 🎙️
+# InterviewIQ
 
-An AI-powered interview platform that replaces traditional online assessments with intelligent, voice-based interviews. Built with the PERN stack, Gemini AI, and Deepgram.
+An AI-powered interview platform that replaces traditional online assessments with intelligent, voice-based interviews. Built with the PERN stack, Google Gemini, and Deepgram.
 
 ## Features
 
 ### For Candidates
 - **AI Voice Interviews** — Real-time voice-based interviews with an AI interviewer powered by Gemini 2.5 Flash
 - **Mock Interviews** — Practice sessions with AI feedback and scoring
-- **Instant Reports** — Get detailed AI evaluation with scores across 4 dimensions
+- **Instant Reports** — Detailed AI evaluation with scores across 4 dimensions
 
 ### For Recruiters
 - **Job Posting** — Create job listings with tech stack, work mode, and experience level
@@ -17,8 +17,10 @@ An AI-powered interview platform that replaces traditional online assessments wi
 
 ### Platform
 - **Secure Auth** — HTTP-only cookie-based JWT authentication
+- **Rate Limiting** — Layered protection against brute-force and API abuse
 - **Anti-Manipulation** — AI interviewer cannot be tricked into breaking character
 - **State Recovery** — Failed AI responses don't corrupt interview history
+- **Webcam Proctoring** — Periodic snapshots during live interviews
 - **Context Optimization** — Rolling window summarization keeps long interviews performant
 
 ## Tech Stack
@@ -47,6 +49,7 @@ graph TB
         D --> F[Jobs Module]
         D --> G[Applications Module]
         D --> H[Interviews Module]
+        D --> R[Rate Limiters]
     end
 
     subgraph External Services
@@ -63,48 +66,25 @@ graph TB
     D -->|Prisma ORM| L
 ```
 
-## Database Schema
+## Rate Limiting
 
-```mermaid
-erDiagram
-    User ||--o{ Application : applies
-    User ||--o{ Interview : takes
-    User ||--o{ OrganizationMembership : belongs_to
-    Organization ||--o{ OrganizationMembership : has
-    Organization ||--o{ Job : posts
-    Job ||--o{ Application : receives
-    Application ||--o{ Interview : triggers
-    Interview ||--o{ InterviewTurn : contains
-    Interview ||--o| Report : generates
+The API uses layered rate limiters (`express-rate-limit`) to protect against abuse without blocking normal usage.
 
-    User {
-        string id PK
-        string email UK
-        string name
-        enum role
-    }
-    Job {
-        string id PK
-        string title
-        text job_description
-        boolean isUnlisted
-        string accessCode UK
-        enum status
-    }
-    Interview {
-        string id PK
-        enum interviewType
-        enum status
-        int maxQuestions
-    }
-    Report {
-        string id PK
-        int tech_score
-        int comm_score
-        int problemSolvingScore
-        int clarityScore
-        string final_verdict
-    }
+| Limiter | Scope | Limit | Purpose |
+|---------|-------|-------|---------|
+| **General** | All routes (except `/api/health`) | 200 req / 15 min | Baseline API protection |
+| **Auth** | `POST /api/auth/login`, `POST /api/auth/register` | 10 req / 15 min | Brute-force protection |
+| **Interview** | `POST /api/interview/start`, `POST /api/interview/turn` | 40 req / 15 min | Protect expensive AI/STT/TTS calls |
+
+**Design notes:**
+- Session checks (`GET /api/auth/me`), logout, and proctoring snapshots are **not** covered by the auth/interview limiters so users won't get locked out mid-session.
+- Expensive AI endpoints (`/start`, `/turn`) are rate-limited separately; lightweight routes like `/snapshot` and `/finish` only count toward the general limiter.
+- In production, `trust proxy` is enabled so limits are applied per client IP behind reverse proxies (Render, Vercel, etc.).
+
+When rate-limited, the API returns **HTTP 429** with:
+
+```json
+{ "status": "fail", "message": "..." }
 ```
 
 ## Project Structure
@@ -118,7 +98,8 @@ erDiagram
 │       │   └── db.js
 │       ├── middleware/
 │       │   ├── authMiddleware.js
-│       │   └── errorMiddleware.js
+│       │   ├── errorMiddleware.js
+│       │   └── rateLimit.js
 │       ├── modules/
 │       │   ├── auth/
 │       │   ├── jobs/
@@ -140,12 +121,15 @@ erDiagram
 │       ├── components/
 │       │   ├── Navbar.jsx
 │       │   ├── ProtectedRoute.jsx
-│       │   └── InterviewReport.jsx
+│       │   ├── InterviewReport.jsx
+│       │   └── ErrorBoundary.jsx
 │       ├── context/
-│       │   └── AuthContext.jsx
+│       │   ├── AuthContext.jsx
+│       │   └── ToastContext.jsx
 │       ├── pages/
 │       │   ├── Login.jsx
 │       │   ├── Register.jsx
+│       │   ├── LandingPage.jsx
 │       │   ├── CandidateDashboard.jsx
 │       │   ├── RecruiterDashboard.jsx
 │       │   ├── InterviewRoom.jsx
@@ -190,9 +174,15 @@ erDiagram
 |--------|----------|-------------|
 | POST | `/api/interview/start` | Start interview (JOB or MOCK) |
 | POST | `/api/interview/turn` | Submit audio answer, get AI response |
+| POST | `/api/interview/snapshot` | Upload proctoring snapshot |
 | POST | `/api/interview/:id/finish` | End interview early |
 | GET | `/api/interview/my` | Get user's interviews |
 | GET | `/api/interview/:id` | Get interview details |
+
+### Health
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | API and database health check |
 
 ## Getting Started
 
@@ -262,3 +252,21 @@ erDiagram
 | Variable | Description |
 |----------|-------------|
 | `VITE_API_BASE_URL` | Backend API URL |
+
+## Deployment
+
+| Service | Role |
+|---------|------|
+| **Render** | Backend API (`interview-iq-api.onrender.com`) |
+| **Vercel** | Frontend (proxies `/api/*` to Render via `vercel.json`) |
+| **Neon** | PostgreSQL database |
+| **AWS S3** | File storage for resumes and audio |
+
+For production:
+- Set `NODE_ENV=production` on the backend
+- Set `CLIENT_URL` to your Vercel frontend URL
+- Set `VITE_API_BASE_URL` to your backend API URL (or use Vercel rewrites)
+
+## License
+
+MIT

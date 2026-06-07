@@ -5,7 +5,7 @@ import cookieParser from "cookie-parser";
 
 import { globalErrorHandler } from "./middleware/errorMiddleware.js";
 import { AppError } from "./utils/AppError.js";
-import { generalLimiter, authLimiter, interviewLimiter } from "./middleware/rateLimit.js";
+import { generalLimiter } from "./middleware/rateLimit.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import applicationRoutes from "./modules/applications/applications.routes.js";
@@ -13,6 +13,10 @@ import interviewRoutes from "./modules/interviews/interview.routes.js";
 import prisma from "./config/db.js";
 
 const app = express();
+
+if (process.env.NODE_ENV === "production") {
+  app.set("trust proxy", 1);
+}
 
 const allowedOrigins = [
   "http://localhost:5173",
@@ -44,10 +48,10 @@ app.use(cookieParser());
 app.use(express.json({ limit: "10mb" }));
 app.use(generalLimiter);
 
-app.use("/api/auth", authLimiter, authRoutes);
+app.use("/api/auth", authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/interview", interviewLimiter, interviewRoutes);
+app.use("/api/interview", interviewRoutes);
 
 app.get("/api/health", async (req, res) => {
   let dbStatus = "disconnected";

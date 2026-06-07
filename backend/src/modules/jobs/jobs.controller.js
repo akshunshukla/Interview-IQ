@@ -64,6 +64,7 @@ export const getAllJobs = asyncHandler(async (req, res, next) => {
     include: {
       organization: { select: { name: true } },
     },
+    orderBy: { createdAt: "desc" },
   });
 
   res
@@ -115,4 +116,33 @@ export const getMyJobs = asyncHandler(async (req, res, next) => {
   res
     .status(200)
     .json(new ApiResponse(200, { jobs }, "Jobs fetched successfully"));
+});
+
+export const updateJobStatus = asyncHandler(async (req, res, next) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status || !["OPEN", "CLOSED", "PAUSED"].includes(status)) {
+    throw new AppError("Invalid status", 400);
+  }
+
+  const job = await prisma.job.findUnique({ where: { id } });
+  if (!job) throw new AppError("Job not found", 404);
+
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId: req.user.id, orgId: job.orgId },
+  });
+
+  if (!membership) {
+    throw new AppError("You do not have permission to update this job", 403);
+  }
+
+  const updatedJob = await prisma.job.update({
+    where: { id },
+    data: { status },
+  });
+
+  res
+    .status(200)
+    .json(new ApiResponse(200, { job: updatedJob }, "Job status updated"));
 });

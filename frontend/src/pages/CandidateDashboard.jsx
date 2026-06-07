@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import Navbar from "../components/Navbar";
 import api from "../services/api";
 import {
@@ -13,16 +14,20 @@ import {
   CheckCircle,
   FileText,
   ChevronRight,
+  ChevronLeft,
 } from "lucide-react";
 
 export default function CandidateDashboard() {
   const { user } = useContext(AuthContext);
+  const toast = useToast();
   const [jobs, setJobs] = useState([]);
   const [interviews, setInterviews] = useState([]);
   const [selectedJob, setSelectedJob] = useState(null);
   const [resumeFile, setResumeFile] = useState(null);
   const [isApplying, setIsApplying] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const jobsPerPage = 5;
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -59,17 +64,10 @@ export default function CandidateDashboard() {
       );
 
       const interviewId = response.data.data.interview.id;
-
-      // Start the interview immediately
-      const startRes = await api.post("/interview/start", {
-        interviewId,
-        interviewType: "JOB",
-      });
-
       navigate(`/interview/${interviewId}`);
     } catch (error) {
       console.error("Application failed:", error);
-      alert(error.response?.data?.message || "Failed to apply");
+      toast.error(error.response?.data?.message || "Failed to apply");
     } finally {
       setIsApplying(false);
     }
@@ -79,13 +77,22 @@ export default function CandidateDashboard() {
     (i) => i.status === "IN_PROGRESS" || i.status === "PENDING"
   );
   const completedInterviews = interviews.filter(
-    (i) => i.status === "COMPLETED"
+    (i) => i.status === "COMPLETED" || i.status === "FAILED"
   );
+
+  const getHasApplied = (jobId) => {
+    return interviews.some((i) => i.application?.job?.id === jobId);
+  };
+
+  const indexOfLastJob = currentPage * jobsPerPage;
+  const indexOfFirstJob = indexOfLastJob - jobsPerPage;
+  const currentJobs = jobs.slice(indexOfFirstJob, indexOfLastJob);
+  const totalPages = Math.ceil(jobs.length / jobsPerPage);
 
   const getStatusStyle = (status) => {
     switch (status) {
       case "COMPLETED":
-        return "bg-emerald-500/10 text-emerald-400 border-emerald-500/20";
+        return "bg-white/10 text-white border-white/20";
       case "IN_PROGRESS":
         return "bg-amber-500/10 text-amber-400 border-amber-500/20";
       default:
@@ -98,21 +105,19 @@ export default function CandidateDashboard() {
       <Navbar />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Header */}
         <div className="mb-10 animate-fade-in">
           <h1 className="text-3xl font-bold tracking-tight">
-            Welcome back, <span className="text-emerald-400">{user?.name?.split(" ")[0]}</span>
+            Welcome back, <span className="text-blue-400">{user?.name?.split(" ")[0]}</span>
           </h1>
           <p className="text-zinc-400 mt-2">
             Apply to jobs, take mock interviews, and track your progress.
           </p>
         </div>
 
-        {/* Active Interviews Banner */}
         {activeInterviews.length > 0 && (
           <div className="mb-8 animate-slide-up">
-            <div className="bg-gradient-to-r from-emerald-500/10 to-teal-500/10 border border-emerald-500/20 rounded-2xl p-5">
-              <h2 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider mb-3">
+            <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-5">
+              <h2 className="text-sm font-semibold text-blue-400 uppercase tracking-wider mb-3">
                 Active Interviews
               </h2>
               <div className="space-y-2">
@@ -135,7 +140,7 @@ export default function CandidateDashboard() {
                         {interview.status.replace("_", " ")}
                       </span>
                     </div>
-                    <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-emerald-400 transition-colors" />
+                    <ChevronRight className="w-4 h-4 text-zinc-600 group-hover:text-blue-400 transition-colors" />
                   </button>
                 ))}
               </div>
@@ -144,12 +149,11 @@ export default function CandidateDashboard() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Mock Interview Card */}
           <div className="lg:col-span-1 animate-slide-up" style={{ animationDelay: "0.1s" }}>
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 h-full hover:border-zinc-700 transition-all">
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center">
-                  <Sparkles className="w-5 h-5 text-emerald-400" />
+                <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center">
+                  <Sparkles className="w-5 h-5 text-blue-400" />
                 </div>
                 <div>
                   <h2 className="text-lg font-semibold text-white">
@@ -161,12 +165,12 @@ export default function CandidateDashboard() {
 
               <p className="text-sm text-zinc-400 mb-6">
                 Upload your resume and choose a target role. AI will conduct a
-                practice interview with up to 6 questions and provide feedback.
+                5-minute practice interview and provide feedback.
               </p>
 
               <button
                 onClick={() => navigate("/mock-interview/setup")}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl px-4 py-3 hover:from-emerald-500 hover:to-teal-500 transition-all flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 hover:shadow-emerald-500/25"
+                className="w-full bg-white text-zinc-950 font-semibold rounded-xl px-4 py-3 hover:bg-zinc-200 transition-all flex items-center justify-center gap-2 shadow-lg shadow-white/5 hover:shadow-white/10"
               >
                 <Sparkles className="w-4 h-4" />
                 Start Mock Interview
@@ -174,11 +178,10 @@ export default function CandidateDashboard() {
             </div>
           </div>
 
-          {/* Job Listings */}
           <div className="lg:col-span-2 animate-slide-up" style={{ animationDelay: "0.2s" }}>
             <div className="space-y-4">
               <h2 className="text-xl font-semibold flex items-center gap-2">
-                <Briefcase className="w-5 h-5 text-emerald-500" />
+                <Briefcase className="w-5 h-5 text-blue-400" />
                 Open Positions
               </h2>
 
@@ -193,63 +196,99 @@ export default function CandidateDashboard() {
                   No open positions right now. Check back later!
                 </div>
               ) : (
-                <div className="grid gap-3">
-                  {jobs.map((job) => (
-                    <div
-                      key={job.id}
-                      onClick={() => setSelectedJob(job)}
-                      className={`p-5 rounded-xl border cursor-pointer transition-all ${
-                        selectedJob?.id === job.id
-                          ? "bg-emerald-500/5 border-emerald-500/40 shadow-lg shadow-emerald-500/5"
-                          : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="font-bold text-lg text-white">
-                            {job.title}
-                          </h3>
-                          <p className="text-sm text-zinc-400 mt-1">
-                            {job.organization?.name} •{" "}
-                            <span className="capitalize">
-                              {job.workMode?.toLowerCase()}
-                            </span>
-                            {job.experienceLevel &&
-                              ` • ${job.experienceLevel}`}
-                          </p>
-                        </div>
-                        {selectedJob?.id === job.id && (
-                          <CheckCircle className="w-5 h-5 text-emerald-400" />
+                <>
+                  <div className="grid gap-3">
+                    {currentJobs.map((job) => {
+                      const hasApplied = getHasApplied(job.id);
+                      return (
+                        <div
+                          key={job.id}
+                          onClick={() => {
+                            if (!hasApplied) setSelectedJob(job);
+                          }}
+                          className={`p-5 rounded-xl border transition-all ${
+                            hasApplied
+                              ? "bg-zinc-900/30 border-zinc-800 opacity-60 cursor-not-allowed"
+                              : selectedJob?.id === job.id
+                                ? "bg-blue-500/5 border-blue-500/30 shadow-lg shadow-blue-500/5 cursor-pointer"
+                                : "bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 cursor-pointer"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-bold text-lg text-white">
+                                {job.title}
+                              </h3>
+                              <p className="text-sm text-zinc-400 mt-1">
+                                {job.organization?.name} •{" "}
+                                <span className="capitalize">
+                                  {job.workMode?.toLowerCase()}
+                                </span>
+                                {job.experienceLevel &&
+                                  ` • ${job.experienceLevel}`}
+                              </p>
+                            </div>
+                            {hasApplied ? (
+                              <span className="px-2.5 py-1 text-xs font-semibold bg-green-500/10 text-green-400 border border-green-500/20 rounded-md">
+                                Applied
+                              </span>
+                            ) : (
+                              selectedJob?.id === job.id && (
+                                <CheckCircle className="w-5 h-5 text-blue-400" />
+                              )
+                            )}
+                          </div>
+                        {job.tech_stack?.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-3">
+                            {job.tech_stack.slice(0, 5).map((tech, i) => (
+                              <span
+                                key={i}
+                                className="px-2 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded-md"
+                              >
+                                {tech}
+                              </span>
+                            ))}
+                          </div>
                         )}
                       </div>
-                      {job.tech_stack?.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-3">
-                          {job.tech_stack.slice(0, 5).map((tech, i) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 text-xs bg-zinc-800 text-zinc-400 rounded-md"
-                            >
-                              {tech}
-                            </span>
-                          ))}
-                        </div>
-                      )}
+                    );
+                  })}
+                  </div>
+
+                  {totalPages > 1 && (
+                    <div className="flex items-center justify-between mt-4">
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className="p-2 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                      >
+                        <ChevronLeft className="w-5 h-5 text-zinc-400" />
+                      </button>
+                      <span className="text-sm text-zinc-400 font-medium">
+                        Page {currentPage} of {totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className="p-2 bg-zinc-900/50 border border-zinc-800 rounded-lg hover:bg-zinc-800 disabled:opacity-50 transition-colors"
+                      >
+                        <ChevronRight className="w-5 h-5 text-zinc-400" />
+                      </button>
                     </div>
-                  ))}
-                </div>
+                  )}
+                </>
               )}
 
-              {/* Application Form */}
               {selectedJob && (
                 <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mt-4 animate-fade-in">
                   <h3 className="text-lg font-semibold mb-4">
                     Apply for{" "}
-                    <span className="text-emerald-400">{selectedJob.title}</span>
+                    <span className="text-blue-400">{selectedJob.title}</span>
                   </h3>
 
                   <form onSubmit={handleApply} className="space-y-5">
                     <div className="relative flex items-center justify-center w-full">
-                      <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-emerald-500/30 transition-all">
+                      <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-blue-500/30 transition-all">
                         <div className="flex flex-col items-center justify-center pt-5 pb-6">
                           <Upload className="w-7 h-7 text-zinc-400 mb-2" />
                           <p className="text-sm text-zinc-400">
@@ -269,7 +308,7 @@ export default function CandidateDashboard() {
                       </label>
                     </div>
                     {resumeFile && (
-                      <p className="text-sm text-emerald-400 flex items-center gap-2">
+                      <p className="text-sm text-blue-400 flex items-center gap-2">
                         <FileText className="w-4 h-4" /> {resumeFile.name}
                       </p>
                     )}
@@ -277,7 +316,7 @@ export default function CandidateDashboard() {
                     <button
                       type="submit"
                       disabled={isApplying || !resumeFile}
-                      className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl px-4 py-3 hover:from-emerald-500 hover:to-teal-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15"
+                      className="w-full bg-white text-zinc-950 font-semibold rounded-xl px-4 py-3 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
                     >
                       {isApplying ? (
                         <Loader2 className="w-5 h-5 animate-spin" />
@@ -294,7 +333,6 @@ export default function CandidateDashboard() {
           </div>
         </div>
 
-        {/* Interview History */}
         {completedInterviews.length > 0 && (
           <div className="mt-12 animate-slide-up" style={{ animationDelay: "0.3s" }}>
             <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -345,19 +383,19 @@ export default function CandidateDashboard() {
                       <span
                         className={`inline-block mt-3 px-2.5 py-1 text-xs font-semibold rounded-full border ${
                           interview.application.status === "SHORTLISTED" || interview.application.status === "HIRED"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-white/10 text-white border-white/20"
                             : interview.application.status === "REJECTED"
                               ? "bg-red-500/10 text-red-400 border-red-500/20"
                               : "bg-amber-500/10 text-amber-400 border-amber-500/20"
                         }`}
                       >
-                        {interview.application.status}
+                        {interview.application.status === "INTERVIEWING" ? "UNDER REVIEW" : interview.application.status}
                       </span>
                     ) : report?.final_verdict && (
                       <span
                         className={`inline-block mt-3 px-2.5 py-1 text-xs font-semibold rounded-full border ${
                           report.final_verdict === "HIRE"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            ? "bg-white/10 text-white border-white/20"
                             : report.final_verdict === "NO HIRE"
                               ? "bg-red-500/10 text-red-400 border-red-500/20"
                               : "bg-amber-500/10 text-amber-400 border-amber-500/20"

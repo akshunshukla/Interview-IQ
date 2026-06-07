@@ -1,5 +1,5 @@
 import React, { useState, useContext } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 import { Loader2, Zap } from "lucide-react";
 
@@ -11,6 +11,8 @@ export default function Login() {
 
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const redirectUrl = searchParams.get("redirect");
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -20,7 +22,9 @@ export default function Login() {
     try {
       const user = await login(email, password);
 
-      if (user?.role === "CANDIDATE") {
+      if (redirectUrl) {
+        navigate(redirectUrl);
+      } else if (user?.role === "CANDIDATE") {
         navigate("/dashboard/candidate");
       } else if (user?.role === "RECRUITER") {
         navigate("/dashboard/recruiter");
@@ -38,18 +42,16 @@ export default function Login() {
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-zinc-950 px-4">
-      {/* Background gradient orbs */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-teal-500/5 rounded-full blur-3xl" />
+      <div className="absolute top-0 left-1/4 w-96 h-96 bg-blue-500/3 rounded-full blur-3xl" />
+      <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-zinc-500/3 rounded-full blur-3xl" />
 
       <div className="w-full max-w-md relative animate-fade-in">
-        {/* Logo */}
         <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/25">
-            <Zap className="w-5 h-5 text-white" />
+          <div className="w-10 h-10 rounded-xl bg-white flex items-center justify-center shadow-lg shadow-white/10">
+            <Zap className="w-5 h-5 text-zinc-950" />
           </div>
           <span className="text-2xl font-bold text-white tracking-tight">
-            Interview<span className="text-emerald-400">IQ</span>
+            Interview<span className="text-blue-400">IQ</span>
           </span>
         </div>
 
@@ -79,7 +81,7 @@ export default function Login() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
                 placeholder="you@example.com"
               />
             </div>
@@ -93,7 +95,7 @@ export default function Login() {
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
                 placeholder="••••••••"
               />
             </div>
@@ -101,7 +103,7 @@ export default function Login() {
             <button
               type="submit"
               disabled={isSubmitting}
-              className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl px-4 py-3 mt-2 hover:from-emerald-500 hover:to-teal-500 transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/30"
+              className="w-full bg-white text-zinc-950 font-semibold rounded-xl px-4 py-3 mt-2 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center shadow-lg shadow-white/5 hover:shadow-white/10"
             >
               {isSubmitting ? (
                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -115,8 +117,8 @@ export default function Login() {
             <p className="text-sm text-zinc-400">
               Don't have an account?{" "}
               <Link
-                to="/register"
-                className="text-emerald-400 font-medium hover:text-emerald-300 transition-colors"
+                to={`/register${redirectUrl ? `?redirect=${encodeURIComponent(redirectUrl)}` : ""}`}
+                className="text-blue-400 font-medium hover:text-blue-300 transition-colors"
               >
                 Create one
               </Link>

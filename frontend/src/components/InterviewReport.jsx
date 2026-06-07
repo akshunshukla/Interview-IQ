@@ -20,9 +20,9 @@ const VerdictBadge = ({ verdict }) => {
   const config = {
     HIRE: {
       icon: CheckCircle,
-      bg: "bg-emerald-500/10",
-      border: "border-emerald-500/30",
-      text: "text-emerald-400",
+      bg: "bg-white/5",
+      border: "border-white/20",
+      text: "text-white",
     },
     "NO HIRE": {
       icon: XCircle,
@@ -63,7 +63,6 @@ export default function InterviewReport({ report }) {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* Header with verdict and average */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h3 className="text-xl font-bold text-white">AI Evaluation Report</h3>
@@ -74,17 +73,16 @@ export default function InterviewReport({ report }) {
         <VerdictBadge verdict={report.final_verdict} />
       </div>
 
-      {/* Score bars */}
       <div className="grid gap-4 bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
         <ScoreBar
           label="Technical Skills"
           score={report.tech_score}
-          color="bg-gradient-to-r from-emerald-500 to-teal-400"
+          color="bg-gradient-to-r from-blue-500 to-blue-400"
         />
         <ScoreBar
           label="Communication"
           score={report.comm_score}
-          color="bg-gradient-to-r from-sky-500 to-blue-400"
+          color="bg-gradient-to-r from-sky-500 to-sky-400"
         />
         <ScoreBar
           label="Problem Solving"
@@ -94,14 +92,13 @@ export default function InterviewReport({ report }) {
         <ScoreBar
           label="Clarity"
           score={report.clarityScore}
-          color="bg-gradient-to-r from-rose-500 to-pink-400"
+          color="bg-gradient-to-r from-zinc-400 to-zinc-300"
         />
       </div>
 
-      {/* Strengths & Weaknesses */}
       <div className="grid sm:grid-cols-2 gap-4">
-        <div className="bg-emerald-500/5 border border-emerald-500/20 rounded-xl p-5">
-          <h4 className="text-sm font-semibold text-emerald-400 uppercase tracking-wider mb-3">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-5">
+          <h4 className="text-sm font-semibold text-white uppercase tracking-wider mb-3">
             Strengths
           </h4>
           <ul className="space-y-2">
@@ -110,7 +107,7 @@ export default function InterviewReport({ report }) {
                 key={i}
                 className="flex items-start gap-2 text-sm text-zinc-300"
               >
-                <CheckCircle className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                <CheckCircle className="w-4 h-4 text-white mt-0.5 shrink-0" />
                 {s}
               </li>
             ))}
@@ -135,7 +132,6 @@ export default function InterviewReport({ report }) {
         </div>
       </div>
 
-      {/* Final Recommendation */}
       {report.finalRecommendation && (
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-5">
           <h4 className="text-sm font-semibold text-zinc-400 uppercase tracking-wider mb-3">

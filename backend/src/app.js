@@ -5,10 +5,12 @@ import cookieParser from "cookie-parser";
 
 import { globalErrorHandler } from "./middleware/errorMiddleware.js";
 import { AppError } from "./utils/AppError.js";
+import { generalLimiter, authLimiter, interviewLimiter } from "./middleware/rateLimit.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import jobRoutes from "./modules/jobs/jobs.routes.js";
 import applicationRoutes from "./modules/applications/applications.routes.js";
 import interviewRoutes from "./modules/interviews/interview.routes.js";
+import prisma from "./config/db.js";
 
 const app = express();
 
@@ -39,17 +41,31 @@ app.use(
   })
 );
 app.use(cookieParser());
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(generalLimiter);
 
-app.use("/api/auth", authRoutes);
+app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/jobs", jobRoutes);
 app.use("/api/applications", applicationRoutes);
-app.use("/api/interview", interviewRoutes);
+app.use("/api/interview", interviewLimiter, interviewRoutes);
 
-app.get("/api/health", (req, res) => {
+app.get("/api/health", async (req, res) => {
+  let dbStatus = "disconnected";
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    dbStatus = "connected";
+  } catch (e) {
+    dbStatus = "error";
+  }
+
   res.status(200).json({
     status: "success",
-    message: "Interview IQ API is running smoothly 🚀",
+    data: {
+      api: "running",
+      database: dbStatus,
+      uptime: Math.floor(process.uptime()),
+      environment: process.env.NODE_ENV || "development",
+    },
   });
 });
 

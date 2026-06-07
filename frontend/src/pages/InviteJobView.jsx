@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import { useToast } from "../context/ToastContext";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import {
@@ -20,6 +21,7 @@ export default function InviteJobView() {
   const { code } = useParams();
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
+  const toast = useToast();
 
   const [job, setJob] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -48,8 +50,7 @@ export default function InviteJobView() {
     if (!resumeFile || !job) return;
 
     if (!user) {
-      // Redirect to login, then come back
-      navigate(`/?redirect=/invite/${code}`);
+      navigate(`/login?redirect=/invite/${code}`);
       return;
     }
 
@@ -65,17 +66,10 @@ export default function InviteJobView() {
       );
 
       const interviewId = response.data.data.interview.id;
-
-      // Start the interview immediately
-      await api.post("/interview/start", {
-        interviewId,
-        interviewType: "JOB",
-      });
-
       navigate(`/interview/${interviewId}`);
     } catch (err) {
       console.error("Application failed:", err);
-      alert(err.response?.data?.message || "Failed to apply. Please try again.");
+      toast.error(err.response?.data?.message || "Failed to apply. Please try again.");
     } finally {
       setIsApplying(false);
     }
@@ -88,7 +82,7 @@ export default function InviteJobView() {
       <div className="max-w-3xl mx-auto px-6 py-12">
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-24 animate-fade-in">
-            <Loader2 className="w-8 h-8 text-emerald-400 animate-spin mb-4" />
+            <Loader2 className="w-8 h-8 text-blue-400 animate-spin mb-4" />
             <p className="text-zinc-400">Loading job details...</p>
           </div>
         ) : error ? (
@@ -111,19 +105,17 @@ export default function InviteJobView() {
           </div>
         ) : (
           <div className="animate-slide-up">
-            {/* Invite Badge */}
             <div className="flex items-center gap-2 mb-6">
-              <span className="px-3 py-1 text-xs font-semibold rounded-full border bg-violet-500/10 text-violet-400 border-violet-500/20 flex items-center gap-1.5">
+              <span className="px-3 py-1 text-xs font-semibold rounded-full border bg-zinc-800 text-zinc-300 border-zinc-700 flex items-center gap-1.5">
                 <EyeOff className="w-3 h-3" />
                 Invite-Only Position
               </span>
             </div>
 
-            {/* Job Header */}
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8 mb-6">
               <div className="flex items-start gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center shrink-0">
-                  <Briefcase className="w-6 h-6 text-emerald-400" />
+                <div className="w-12 h-12 rounded-xl bg-blue-500/10 flex items-center justify-center shrink-0">
+                  <Briefcase className="w-6 h-6 text-blue-400" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-white mb-1">
@@ -147,7 +139,6 @@ export default function InviteJobView() {
                 </div>
               </div>
 
-              {/* Tech Stack */}
               {job.tech_stack?.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-6">
                   {job.tech_stack.map((tech, i) => (
@@ -161,7 +152,6 @@ export default function InviteJobView() {
                 </div>
               )}
 
-              {/* Job Description */}
               <div className="border-t border-zinc-800 pt-6">
                 <h2 className="text-sm font-semibold text-zinc-300 uppercase tracking-wider mb-3">
                   About This Role
@@ -172,7 +162,6 @@ export default function InviteJobView() {
               </div>
             </div>
 
-            {/* Apply Section */}
             {user && user.role === "CANDIDATE" ? (
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
                 <h2 className="text-lg font-semibold text-white mb-1">
@@ -185,7 +174,7 @@ export default function InviteJobView() {
 
                 <form onSubmit={handleApply} className="space-y-5">
                   <div className="relative flex items-center justify-center w-full">
-                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-emerald-500/30 transition-all">
+                    <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-blue-500/30 transition-all">
                       <div className="flex flex-col items-center justify-center pt-5 pb-6">
                         <Upload className="w-7 h-7 text-zinc-400 mb-2" />
                         <p className="text-sm text-zinc-400">
@@ -205,7 +194,7 @@ export default function InviteJobView() {
                     </label>
                   </div>
                   {resumeFile && (
-                    <p className="text-sm text-emerald-400 flex items-center gap-2">
+                    <p className="text-sm text-blue-400 flex items-center gap-2">
                       <FileText className="w-4 h-4" /> {resumeFile.name}
                     </p>
                   )}
@@ -213,7 +202,7 @@ export default function InviteJobView() {
                   <button
                     type="submit"
                     disabled={isApplying || !resumeFile}
-                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl px-4 py-3 hover:from-emerald-500 hover:to-teal-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15"
+                    className="w-full bg-white text-zinc-950 font-semibold rounded-xl px-4 py-3 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-white/5"
                   >
                     {isApplying ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -253,8 +242,8 @@ export default function InviteJobView() {
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <button
-                    onClick={() => navigate(`/?redirect=/invite/${code}`)}
-                    className="px-6 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl hover:from-emerald-500 hover:to-teal-500 transition-all"
+                    onClick={() => navigate(`/login?redirect=/invite/${code}`)}
+                    className="px-6 py-2.5 bg-white text-zinc-950 font-semibold rounded-xl hover:bg-zinc-200 transition-all"
                   >
                     Log In
                   </button>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { useToast } from "../context/ToastContext";
 import api from "../services/api";
 import Navbar from "../components/Navbar";
 import InterviewReport from "../components/InterviewReport";
@@ -13,11 +14,13 @@ import {
   MessageSquare,
   Zap,
   User as UserIcon,
+  Camera,
 } from "lucide-react";
 
 export default function ApplicantDetail() {
   const { applicationId } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
 
   const [application, setApplication] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -46,13 +49,12 @@ export default function ApplicantDetail() {
         status,
         decisionReason: decisionReason || undefined,
       });
-      // Refresh
       const res = await api.get(`/applications/${applicationId}/details`);
       setApplication(res.data.data.application);
       setDecisionReason("");
     } catch (error) {
       console.error("Failed to update verdict:", error);
-      alert("Failed to update verdict");
+      toast.error("Failed to update verdict");
     } finally {
       setUpdatingStatus(null);
     }
@@ -61,7 +63,7 @@ export default function ApplicantDetail() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
       </div>
     );
   }
@@ -84,7 +86,7 @@ export default function ApplicantDetail() {
     const styles = {
       APPLIED: "bg-zinc-500/10 text-zinc-400 border-zinc-500/20",
       INTERVIEWING: "bg-amber-500/10 text-amber-400 border-amber-500/20",
-      SHORTLISTED: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+      SHORTLISTED: "bg-white/10 text-white border-white/20",
       REJECTED: "bg-red-500/10 text-red-400 border-red-500/20",
       HIRED: "bg-sky-500/10 text-sky-400 border-sky-500/20",
     };
@@ -96,7 +98,6 @@ export default function ApplicantDetail() {
       <Navbar />
 
       <div className="max-w-5xl mx-auto px-6 py-8">
-        {/* Back */}
         <button
           onClick={() => navigate(-1)}
           className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors mb-6"
@@ -105,7 +106,6 @@ export default function ApplicantDetail() {
           Back
         </button>
 
-        {/* Candidate Header */}
         <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mb-8 animate-fade-in">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
@@ -131,7 +131,6 @@ export default function ApplicantDetail() {
               </p>
             </div>
 
-            {/* Resume download */}
             {application.resumeFileUrl && (
               <a
                 href={application.resumeFileUrl}
@@ -146,7 +145,6 @@ export default function ApplicantDetail() {
           </div>
         </div>
 
-        {/* Action Panel (if still APPLIED) */}
         {(application.status === "APPLIED" ||
           application.status === "INTERVIEWING") && report && (
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6 mb-8 animate-slide-up">
@@ -163,7 +161,7 @@ export default function ApplicantDetail() {
                   rows="2"
                   value={decisionReason}
                   onChange={(e) => setDecisionReason(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-emerald-500/50 outline-none resize-none transition-all"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-white focus:border-blue-500/50 outline-none resize-none transition-all"
                   placeholder="Add a note about your decision..."
                 />
               </div>
@@ -172,7 +170,7 @@ export default function ApplicantDetail() {
                 <button
                   onClick={() => handleVerdict("SHORTLISTED")}
                   disabled={!!updatingStatus}
-                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl hover:bg-emerald-500/20 transition-all disabled:opacity-50"
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-3 text-sm font-semibold text-white bg-white/10 border border-white/20 rounded-xl hover:bg-white/20 transition-all disabled:opacity-50"
                 >
                   {updatingStatus === "SHORTLISTED" ? (
                     <Loader2 className="w-4 h-4 animate-spin" />
@@ -198,13 +196,12 @@ export default function ApplicantDetail() {
           </div>
         )}
 
-        {/* Tabs */}
         <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-xl mb-8 w-fit">
           <button
             onClick={() => setActiveTab("report")}
             className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
               activeTab === "report"
-                ? "bg-emerald-500/10 text-emerald-400 shadow"
+                ? "bg-blue-500/10 text-blue-400 shadow"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -214,7 +211,7 @@ export default function ApplicantDetail() {
             onClick={() => setActiveTab("transcript")}
             className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
               activeTab === "transcript"
-                ? "bg-emerald-500/10 text-emerald-400 shadow"
+                ? "bg-blue-500/10 text-blue-400 shadow"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -225,16 +222,28 @@ export default function ApplicantDetail() {
             onClick={() => setActiveTab("resume")}
             className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
               activeTab === "resume"
-                ? "bg-emerald-500/10 text-emerald-400 shadow"
+                ? "bg-blue-500/10 text-blue-400 shadow"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
             <FileText className="w-4 h-4" />
             Resume
           </button>
+          {interview?.interviewType === "JOB" && (
+            <button
+              onClick={() => setActiveTab("snapshots")}
+              className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
+                activeTab === "snapshots"
+                  ? "bg-blue-500/10 text-blue-400 shadow"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Camera className="w-4 h-4" />
+              Snapshots ({interview.snapshots?.length || 0})
+            </button>
+          )}
         </div>
 
-        {/* Tab Content */}
         <div className="animate-fade-in">
           {activeTab === "report" && (
             <>
@@ -267,12 +276,12 @@ export default function ApplicantDetail() {
                     <div
                       className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                         turn.speaker === "AI"
-                          ? "bg-emerald-500/20"
+                          ? "bg-blue-500/20"
                           : "bg-zinc-800"
                       }`}
                     >
                       {turn.speaker === "AI" ? (
-                        <Zap className="w-4 h-4 text-emerald-400" />
+                        <Zap className="w-4 h-4 text-blue-400" />
                       ) : (
                         <UserIcon className="w-4 h-4 text-zinc-400" />
                       )}
@@ -281,7 +290,7 @@ export default function ApplicantDetail() {
                       className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${
                         turn.speaker === "AI"
                           ? "bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 rounded-tl-md"
-                          : "bg-emerald-500/10 border border-emerald-500/20 text-zinc-200 rounded-tr-md"
+                          : "bg-blue-500/10 border border-blue-500/20 text-zinc-200 rounded-tr-md"
                       }`}
                     >
                       <span className="text-xs font-medium text-zinc-500 block mb-1">
@@ -309,6 +318,37 @@ export default function ApplicantDetail() {
                 <p className="text-zinc-500 text-sm text-center py-8">
                   Resume text not available.
                 </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === "snapshots" && (
+            <div className="space-y-4">
+              {interview?.snapshots?.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {interview.snapshots.map((snap, i) => (
+                    <div key={snap.id} className="bg-zinc-900/50 border border-zinc-800 rounded-xl overflow-hidden">
+                      <img
+                        src={snap.imageUrl}
+                        alt={`Snapshot ${i + 1}`}
+                        className="w-full aspect-video object-cover"
+                      />
+                      <div className="px-3 py-2">
+                        <p className="text-xs text-zinc-500">
+                          {new Date(snap.capturedAt).toLocaleString()}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-8 text-center animate-fade-in">
+                  <Camera className="w-8 h-8 text-red-400 mx-auto mb-3" />
+                  <p className="text-red-400 font-bold text-lg">⚠️ 0 snapshots captured</p>
+                  <p className="text-red-400/80 text-sm mt-2 max-w-md mx-auto">
+                    The candidate may have denied camera permissions, used a broken camera, or bypassed the proctoring system.
+                  </p>
+                </div>
               )}
             </div>
           )}

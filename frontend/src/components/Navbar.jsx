@@ -20,20 +20,18 @@ export default function Navbar() {
   return (
     <nav className="sticky top-0 z-50 border-b border-zinc-800/60 bg-zinc-950/80 backdrop-blur-xl">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        {/* Logo */}
         <Link
           to={dashboardPath}
           className="flex items-center gap-2.5 group"
         >
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20 group-hover:shadow-emerald-500/40 transition-shadow">
-            <Zap className="w-4 h-4 text-white" />
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center shadow-lg shadow-white/10 group-hover:shadow-white/20 transition-shadow">
+            <Zap className="w-4 h-4 text-zinc-950" />
           </div>
           <span className="text-lg font-bold text-white tracking-tight">
-            Interview<span className="text-emerald-400">IQ</span>
+            Interview<span className="text-blue-400">IQ</span>
           </span>
         </Link>
 
-        {/* Right side */}
         {user && (
           <div className="flex items-center gap-4">
             <Link

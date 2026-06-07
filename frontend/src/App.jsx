@@ -1,5 +1,6 @@
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
+import LandingPage from "./pages/LandingPage";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import CandidateDashboard from "./pages/CandidateDashboard";
@@ -16,12 +17,11 @@ function App() {
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-50 antialiased">
       <Routes>
-        {/* Public Routes */}
-        <Route path="/" element={<Login />} />
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/invite/:code" element={<InviteJobView />} />
 
-        {/* Candidate Routes (Protected) */}
         <Route
           path="/dashboard/candidate"
           element={
@@ -39,7 +39,6 @@ function App() {
           }
         />
 
-        {/* Shared Interview Routes (Protected — both roles can view) */}
         <Route
           path="/interview/:interviewId"
           element={
@@ -57,7 +56,6 @@ function App() {
           }
         />
 
-        {/* Recruiter Routes (Protected) */}
         <Route
           path="/dashboard/recruiter"
           element={
@@ -83,7 +81,6 @@ function App() {
           }
         />
 
-        {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </div>

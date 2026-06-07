@@ -9,6 +9,7 @@ import {
   finishInterview as finishInterviewService,
   cleanupStaleInterviews,
 } from "./interview.service.js";
+import { uploadToS3, generatePresignedUrl } from "../../utils/s3.js";
 
 export const startInterview = asyncHandler(async (req, res, next) => {
   const { interviewId, targetRole, interviewType } = req.body;
@@ -34,6 +35,10 @@ export const startInterview = asyncHandler(async (req, res, next) => {
       resumeText,
       targetRole
     );
+
+    if (result.firstTurn?.audioUrl) {
+      result.firstTurn.audioUrl = await generatePresignedUrl(result.firstTurn.audioUrl);
+    }
 
     return res.status(201).json(
       new ApiResponse(
@@ -63,6 +68,10 @@ export const startInterview = asyncHandler(async (req, res, next) => {
   }
 
   const result = await startJobInterview(interviewId);
+
+  if (result.firstTurn?.audioUrl) {
+    result.firstTurn.audioUrl = await generatePresignedUrl(result.firstTurn.audioUrl);
+  }
 
   res.status(200).json(
     new ApiResponse(
@@ -99,6 +108,10 @@ export const processInterviewTurn = asyncHandler(async (req, res, next) => {
     audioFile.buffer,
     audioFile.originalname
   );
+
+  if (result.aiTurn?.audioUrl) {
+    result.aiTurn.audioUrl = await generatePresignedUrl(result.aiTurn.audioUrl);
+  }
 
   res.status(200).json(
     new ApiResponse(
@@ -163,6 +176,14 @@ export const getInterviewDetails = asyncHandler(async (req, res, next) => {
     throw new AppError("You are not authorized to view this interview", 403);
   }
 
+  if (interview.turns) {
+    for (const turn of interview.turns) {
+      if (turn.audioUrl) {
+        turn.audioUrl = await generatePresignedUrl(turn.audioUrl);
+      }
+    }
+  }
+
   res
     .status(200)
     .json(
@@ -201,4 +222,33 @@ export const getMyInterviews = asyncHandler(async (req, res, next) => {
     .json(
       new ApiResponse(200, { interviews }, "Interviews fetched successfully")
     );
+});
+
+export const processSnapshot = asyncHandler(async (req, res, next) => {
+  const { interviewId } = req.body;
+  const imageFile = req.file;
+
+  if (!interviewId || !imageFile) {
+    throw new AppError("Interview ID and image file are required", 400);
+  }
+
+  const interview = await prisma.interview.findUnique({
+    where: { id: interviewId },
+  });
+
+  if (!interview || interview.interviewType !== "JOB") {
+    return res.status(200).json(new ApiResponse(200, null, "Snapshot ignored"));
+  }
+
+  const imageUrl = await uploadToS3(
+    imageFile.buffer,
+    `snapshot-${interviewId}-${Date.now()}.jpg`,
+    imageFile.mimetype
+  );
+
+  const snapshot = await prisma.interviewSnapshot.create({
+    data: { interviewId, imageUrl },
+  });
+
+  res.status(200).json(new ApiResponse(200, { snapshot }, "Snapshot saved"));
 });

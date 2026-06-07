@@ -2,7 +2,7 @@ import prisma from "../../config/db.js";
 import { asyncHandler } from "../../utils/asyncHandler.js";
 import { AppError } from "../../utils/AppError.js";
 import { ApiResponse } from "../../utils/ApiResponse.js";
-import { uploadToS3 } from "../../utils/s3.js";
+import { uploadToS3, generatePresignedUrl } from "../../utils/s3.js";
 
 export const applyForJob = asyncHandler(async (req, res, next) => {
   const { jobId } = req.params;
@@ -11,6 +11,13 @@ export const applyForJob = asyncHandler(async (req, res, next) => {
   const job = await prisma.job.findUnique({ where: { id: jobId } });
   if (!job || job.status !== "OPEN") {
     throw new AppError("This job is no longer accepting applications", 404);
+  }
+
+  if (job.max_applicants) {
+    const appCount = await prisma.application.count({ where: { jobId } });
+    if (appCount >= job.max_applicants) {
+      throw new AppError("This job has reached the maximum number of applicants", 400);
+    }
   }
 
   const existingApplication = await prisma.application.findFirst({
@@ -85,6 +92,16 @@ export const applyForJob = asyncHandler(async (req, res, next) => {
 export const getJobApplications = asyncHandler(async (req, res, next) => {
   const { jobId } = req.params;
 
+  const job = await prisma.job.findUnique({ where: { id: jobId } });
+  if (!job) throw new AppError("Job not found", 404);
+
+  const membership = await prisma.organizationMembership.findFirst({
+    where: { userId: req.user.id, orgId: job.orgId },
+  });
+  if (!membership) {
+    throw new AppError("You do not have permission to view this job's applicants", 403);
+  }
+
   const applications = await prisma.application.findMany({
     where: { jobId },
     include: {
@@ -109,19 +126,25 @@ export const getJobApplications = asyncHandler(async (req, res, next) => {
     orderBy: { createdAt: "desc" },
   });
 
-  const sorted = applications
-    .map((app) => {
-      const interview = app.interviews[0];
-      const report = interview?.report;
-      const totalScore = report
-        ? (report.tech_score || 0) +
-          (report.comm_score || 0) +
-          (report.problemSolvingScore || 0) +
-          (report.clarityScore || 0)
-        : null;
-      return { ...app, _totalScore: totalScore };
-    })
-    .sort((a, b) => {
+  const sorted = await Promise.all(applications.map(async (app) => {
+    const interview = app.interviews[0];
+    const report = interview?.report;
+    const avgScore = report
+      ? ((report.tech_score || 0) +
+        (report.comm_score || 0) +
+        (report.problemSolvingScore || 0) +
+        (report.clarityScore || 0)) / 4
+      : null;
+    
+    let presignedResume = app.resumeFileUrl;
+    if (presignedResume) {
+      presignedResume = await generatePresignedUrl(presignedResume);
+    }
+
+    return { ...app, resumeFileUrl: presignedResume, _totalScore: avgScore };
+  }));
+
+  sorted.sort((a, b) => {
       if (a._totalScore === null && b._totalScore === null) return 0;
       if (a._totalScore === null) return 1;
       if (b._totalScore === null) return -1;
@@ -200,6 +223,7 @@ export const getApplicationDetails = asyncHandler(async (req, res, next) => {
         include: {
           turns: { orderBy: { turn_number: "asc" } },
           report: true,
+          snapshots: { orderBy: { capturedAt: "asc" } },
         },
         orderBy: { createdAt: "desc" },
       },
@@ -219,6 +243,29 @@ export const getApplicationDetails = asyncHandler(async (req, res, next) => {
       "You do not have permission to view this application",
       403
     );
+  }
+
+  if (application.resumeFileUrl) {
+    application.resumeFileUrl = await generatePresignedUrl(application.resumeFileUrl);
+  }
+
+  if (application.interviews) {
+    for (const interview of application.interviews) {
+      if (interview.snapshots) {
+        for (const snapshot of interview.snapshots) {
+          if (snapshot.imageUrl) {
+            snapshot.imageUrl = await generatePresignedUrl(snapshot.imageUrl);
+          }
+        }
+      }
+      if (interview.turns) {
+        for (const turn of interview.turns) {
+          if (turn.audioUrl) {
+            turn.audioUrl = await generatePresignedUrl(turn.audioUrl);
+          }
+        }
+      }
+    }
   }
 
   res

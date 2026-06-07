@@ -14,8 +14,12 @@ const signToken = (id) => {
 const isProduction = process.env.NODE_ENV === "production";
 
 const sendTokenCookie = (res, token) => {
+  let expireDays = 30;
+  if (process.env.JWT_EXPIRES_IN && process.env.JWT_EXPIRES_IN.endsWith("d")) {
+    expireDays = parseInt(process.env.JWT_EXPIRES_IN.replace("d", ""), 10) || 30;
+  }
   const cookieOptions = {
-    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+    expires: new Date(Date.now() + expireDays * 24 * 60 * 60 * 1000),
     httpOnly: true,
     sameSite: isProduction ? "none" : "lax",
     secure: isProduction,
@@ -24,10 +28,15 @@ const sendTokenCookie = (res, token) => {
 };
 
 export const register = asyncHandler(async (req, res, next) => {
-  const { email, password, name, role, orgName } = req.body;
+  const { password, name, role, orgName } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
   if (!email || !password || !name || !role) {
     throw new AppError("Please provide email, password, name, and role", 400);
+  }
+
+  if (password.length < 6) {
+    throw new AppError("Password must be at least 6 characters", 400);
   }
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
@@ -98,7 +107,8 @@ export const register = asyncHandler(async (req, res, next) => {
 });
 
 export const login = asyncHandler(async (req, res, next) => {
-  const { email, password } = req.body;
+  const { password } = req.body;
+  const email = req.body.email?.toLowerCase().trim();
 
   if (!email || !password) {
     throw new AppError("Please provide email and password", 400);

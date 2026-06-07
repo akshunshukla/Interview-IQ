@@ -6,6 +6,7 @@ import {
   endInterview,
   getInterviewDetails,
   getMyInterviews,
+  processSnapshot,
 } from "./interview.controller.js";
 import { protect } from "../../middleware/authMiddleware.js";
 
@@ -24,6 +25,7 @@ router.get("/my", getMyInterviews);
 router.get("/:id", getInterviewDetails);
 router.post("/start", upload.single("resume"), startInterview);
 router.post("/turn", upload.single("audio"), processInterviewTurn);
+router.post("/snapshot", upload.single("image"), processSnapshot);
 router.post("/:id/finish", endInterview);
 
 export default router;

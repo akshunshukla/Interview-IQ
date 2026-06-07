@@ -20,10 +20,19 @@ export default function InterviewResults() {
   const [activeTab, setActiveTab] = useState("report");
 
   useEffect(() => {
+    let timeoutId;
     const fetchInterview = async () => {
       try {
         const res = await api.get(`/interview/${interviewId}`);
-        setInterview(res.data.data.interview);
+        const data = res.data.data.interview;
+        setInterview(data);
+
+        const reportNotReady =
+          !data.report || data.report.generationStatus === "PENDING";
+
+        if (data.status === "COMPLETED" && reportNotReady) {
+          timeoutId = setTimeout(fetchInterview, 3000);
+        }
       } catch (error) {
         console.error("Failed to fetch interview:", error);
       } finally {
@@ -31,12 +40,16 @@ export default function InterviewResults() {
       }
     };
     fetchInterview();
+
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [interviewId]);
 
   if (isLoading) {
     return (
       <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-blue-400 animate-spin" />
       </div>
     );
   }
@@ -59,7 +72,6 @@ export default function InterviewResults() {
       <Navbar />
 
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Back button */}
         <button
           onClick={() => navigate("/dashboard/candidate")}
           className="flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition-colors mb-6"
@@ -68,7 +80,6 @@ export default function InterviewResults() {
           Back to Dashboard
         </button>
 
-        {/* Header */}
         <div className="mb-8 animate-fade-in">
           <h1 className="text-2xl font-bold tracking-tight">
             Interview Results
@@ -83,13 +94,12 @@ export default function InterviewResults() {
           </p>
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 p-1 bg-zinc-900 border border-zinc-800 rounded-xl mb-8 w-fit">
           <button
             onClick={() => setActiveTab("report")}
             className={`px-5 py-2 text-sm font-medium rounded-lg transition-all ${
               activeTab === "report"
-                ? "bg-emerald-500/10 text-emerald-400 shadow"
+                ? "bg-blue-500/10 text-blue-400 shadow"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -99,7 +109,7 @@ export default function InterviewResults() {
             onClick={() => setActiveTab("transcript")}
             className={`px-5 py-2 text-sm font-medium rounded-lg transition-all flex items-center gap-2 ${
               activeTab === "transcript"
-                ? "bg-emerald-500/10 text-emerald-400 shadow"
+                ? "bg-blue-500/10 text-blue-400 shadow"
                 : "text-zinc-400 hover:text-zinc-200"
             }`}
           >
@@ -108,16 +118,21 @@ export default function InterviewResults() {
           </button>
         </div>
 
-        {/* Content */}
         {activeTab === "report" ? (
           <div className="animate-fade-in">
             {report ? (
               <InterviewReport report={report} />
+            ) : interview.status === "FAILED" ? (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-xl p-8 text-center">
+                <p className="text-red-400 font-medium">
+                  The interview failed or the report could not be generated.
+                </p>
+              </div>
             ) : (
               <div className="bg-zinc-900/50 border border-zinc-800 rounded-xl p-8 text-center">
-                <Loader2 className="w-8 h-8 text-zinc-600 animate-spin mx-auto mb-4" />
+                <Loader2 className="w-8 h-8 text-blue-400 animate-spin mx-auto mb-4" />
                 <p className="text-zinc-400">
-                  Report is being generated. Please check back shortly.
+                  Report is being generated. This usually takes about 30 seconds...
                 </p>
               </div>
             )}
@@ -134,12 +149,12 @@ export default function InterviewResults() {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${
                     turn.speaker === "AI"
-                      ? "bg-emerald-500/20"
+                      ? "bg-blue-500/20"
                       : "bg-zinc-800"
                   }`}
                 >
                   {turn.speaker === "AI" ? (
-                    <Zap className="w-4 h-4 text-emerald-400" />
+                    <Zap className="w-4 h-4 text-blue-400" />
                   ) : (
                     <UserIcon className="w-4 h-4 text-zinc-400" />
                   )}
@@ -148,7 +163,7 @@ export default function InterviewResults() {
                   className={`max-w-[80%] p-4 rounded-2xl text-sm leading-relaxed ${
                     turn.speaker === "AI"
                       ? "bg-zinc-800/60 border border-zinc-700/50 text-zinc-200 rounded-tl-md"
-                      : "bg-emerald-500/10 border border-emerald-500/20 text-zinc-200 rounded-tr-md"
+                      : "bg-blue-500/10 border border-blue-500/20 text-zinc-200 rounded-tr-md"
                   }`}
                 >
                   <span className="text-xs font-medium text-zinc-500 block mb-1">

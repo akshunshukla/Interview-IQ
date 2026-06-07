@@ -164,6 +164,8 @@ model Interview {
   attemptNumber Int             @default(1)
   status        InterviewStatus @default(PENDING)
   maxQuestions  Int             @default(6)
+  durationSeconds Int           @default(600)
+  timerExpiresAt  DateTime?
 
   // Mock interview context (when no application exists)
   resumeText    String?         @db.Text
@@ -173,10 +175,11 @@ model Interview {
   completedAt   DateTime?
   createdAt     DateTime        @default(now())
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  application Application? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  application Application?     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
   turns       InterviewTurn[]
   report      Report?
+  snapshots   InterviewSnapshot[]
 }
 
 model InterviewTurn {
@@ -212,6 +215,15 @@ model Report {
   
   generatedAt         DateTime?
   createdAt           DateTime     @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+}
+
+model InterviewSnapshot {
+  id           String   @id @default(uuid())
+  interviewId  String
+  imageUrl     String
+  capturedAt   DateTime @default(now())
 
   interview Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
 }

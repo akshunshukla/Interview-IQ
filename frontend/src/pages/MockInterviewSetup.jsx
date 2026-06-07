@@ -67,10 +67,9 @@ export default function MockInterviewSetup() {
 
       <div className="max-w-2xl mx-auto px-6 py-12">
         <div className="animate-fade-in">
-          {/* Header */}
           <div className="text-center mb-10">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 flex items-center justify-center mx-auto mb-4">
-              <Sparkles className="w-8 h-8 text-emerald-400" />
+            <div className="w-16 h-16 rounded-2xl bg-blue-500/10 flex items-center justify-center mx-auto mb-4">
+              <Sparkles className="w-8 h-8 text-blue-400" />
             </div>
             <h1 className="text-3xl font-bold tracking-tight">
               Mock Interview
@@ -80,7 +79,6 @@ export default function MockInterviewSetup() {
             </p>
           </div>
 
-          {/* Form */}
           <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-8">
             {error && (
               <div className="mb-6 p-3 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-sm text-center">
@@ -89,7 +87,6 @@ export default function MockInterviewSetup() {
             )}
 
             <form onSubmit={handleStart} className="space-y-6">
-              {/* Target Role */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Target Role <span className="text-red-400">*</span>
@@ -99,11 +96,10 @@ export default function MockInterviewSetup() {
                   required
                   value={targetRole}
                   onChange={(e) => setTargetRole(e.target.value)}
-                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/20 transition-all"
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-xl px-4 py-3 text-zinc-100 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 transition-all"
                   placeholder="e.g. Senior Frontend Engineer"
                 />
 
-                {/* Suggestions */}
                 <div className="flex flex-wrap gap-2 mt-3">
                   {ROLE_SUGGESTIONS.map((role) => (
                     <button
@@ -111,7 +107,7 @@ export default function MockInterviewSetup() {
                       type="button"
                       onClick={() => setTargetRole(role)}
                       className={`px-3 py-1 text-xs rounded-lg border transition-all ${targetRole === role
-                          ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-400"
+                          ? "bg-blue-500/10 border-blue-500/40 text-blue-400"
                           : "bg-zinc-900 border-zinc-800 text-zinc-500 hover:text-zinc-300 hover:border-zinc-700"
                         }`}
                     >
@@ -121,13 +117,12 @@ export default function MockInterviewSetup() {
                 </div>
               </div>
 
-              {/* Resume Upload */}
               <div>
                 <label className="block text-sm font-medium text-zinc-300 mb-2">
                   Resume{" "}
                   <span className="text-zinc-500 font-normal">(optional)</span>
                 </label>
-                <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-emerald-500/30 transition-all">
+                <label className="flex flex-col items-center justify-center w-full h-36 border-2 border-zinc-700 border-dashed rounded-xl cursor-pointer bg-zinc-950/50 hover:bg-zinc-900/50 hover:border-blue-500/30 transition-all">
                   <div className="flex flex-col items-center justify-center py-4">
                     <Upload className="w-7 h-7 text-zinc-400 mb-2" />
                     <p className="text-sm text-zinc-400">
@@ -146,19 +141,18 @@ export default function MockInterviewSetup() {
                   />
                 </label>
                 {resumeFile && (
-                  <p className="text-sm text-emerald-400 flex items-center gap-2 mt-2">
+                  <p className="text-sm text-blue-400 flex items-center gap-2 mt-2">
                     <FileText className="w-4 h-4" /> {resumeFile.name}
                   </p>
                 )}
               </div>
 
-              {/* Info */}
               <div className="bg-zinc-800/30 border border-zinc-800 rounded-xl p-4">
                 <p className="text-sm text-zinc-400">
                   <span className="text-white font-medium">How it works:</span>{" "}
-                  The AI interviewer will ask up to 6 questions based on your
-                  target role and resume. Speak your answers using the
-                  microphone. After the interview, you'll receive a detailed
+                  The AI interviewer will conduct a 10-minute practice interview
+                  based on your target role and resume. Speak your answers using
+                  the microphone. After the interview, you'll receive a detailed
                   report with scores and feedback.
                 </p>
               </div>
@@ -166,7 +160,7 @@ export default function MockInterviewSetup() {
               <button
                 type="submit"
                 disabled={isStarting || !targetRole.trim()}
-                className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold rounded-xl px-4 py-3.5 hover:from-emerald-500 hover:to-teal-500 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/15 hover:shadow-emerald-500/25 text-base"
+                className="w-full bg-white text-zinc-950 font-semibold rounded-xl px-4 py-3.5 hover:bg-zinc-200 transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-white/5 hover:shadow-white/10 text-base"
               >
                 {isStarting ? (
                   <Loader2 className="w-5 h-5 animate-spin" />
